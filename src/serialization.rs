@@ -20,6 +20,12 @@ pub enum SerializationMethod {
 
     /// [CBOR serialization](https://crates.io/crates/serde_cbor)
     Cbor,
+
+    /// [Binrw big-endian serialization](https://crates.io/crates/binrw)
+    BinrwBe,
+
+    /// [Binrw little-endian serialization](https://crates.io/crates/binrw)
+    BinrwLe,
 }
 
 impl From<i32> for SerializationMethod {
@@ -29,6 +35,8 @@ impl From<i32> for SerializationMethod {
             1 => SerializationMethod::Bin,
             2 => SerializationMethod::Yaml,
             3 => SerializationMethod::Cbor,
+            4 => SerializationMethod::BinrwBe,
+            5 => SerializationMethod::BinrwLe,
             _ => SerializationMethod::Json,
         }
     }
@@ -272,6 +280,80 @@ impl CborSerializer {
     }
 }
 
+#[cfg(feature = "binrw")]
+struct BinrwLeSerializer {}
+
+#[cfg(feature = "binrw")]
+impl BinrwLeSerializer {
+    fn new() -> BinrwLeSerializer {
+        BinrwLeSerializer {}
+    }
+
+    fn deserialize_data<V>(&self, ser_data: &[u8]) -> Option<V>
+    where
+        V: DeserializeOwned,
+    {
+        // todo!("Given any V: binrw::BinWrite, return Some(DeserializeOwned)");
+        None
+    }
+
+    fn serialize_data<V>(&self, data: &V) -> Result<Vec<u8>, String>
+    where
+        V: Serialize,
+    {
+        // todo!("Given any V: BinRead")
+        Ok(vec![])
+    }
+
+    fn serialize_db(&self, map: &DbMap, list_map: &DbListMap) -> Result<Vec<u8>, String> {
+        self.serialize_data(&(map, list_map))
+    }
+
+    fn deserialize_db(&self, ser_db: &[u8]) -> Result<(DbMap, DbListMap), String> {
+        match self.deserialize_data(ser_db) {
+            Some((map, list_map)) => Ok((map, list_map)),
+            None => Err(String::from("Cannot deserialize DB")),
+        }
+    }
+}
+#[cfg(feature = "binrw")]
+struct BinrwBeSerializer {
+}
+
+#[cfg(feature = "binrw")]
+impl BinrwBeSerializer {
+    fn new() -> BinrwBeSerializer {
+        BinrwBeSerializer {}
+    }
+
+    fn deserialize_data<V>(&self, ser_data: &[u8]) -> Option<V>
+    where
+        V: DeserializeOwned,
+    {
+        // todo!("Given any V: binrw::BinWrite, return Some(DeserializeOwned)");
+        None
+    }
+
+    fn serialize_data<V>(&self, data: &V) -> Result<Vec<u8>, String>
+    where
+        V: Serialize,
+    {
+        // todo!("Given any V: BinRead")
+        Ok(vec![])
+    }
+
+    fn serialize_db(&self, map: &DbMap, list_map: &DbListMap) -> Result<Vec<u8>, String> {
+        self.serialize_data(&(map, list_map))
+    }
+
+    fn deserialize_db(&self, ser_db: &[u8]) -> Result<(DbMap, DbListMap), String> {
+        match self.deserialize_data(ser_db) {
+            Some((map, list_map)) => Ok((map, list_map)),
+            None => Err(String::from("Cannot deserialize DB")),
+        }
+    }
+}
+
 pub(crate) struct Serializer {
     ser_method: SerializationMethod,
     #[cfg(feature = "json")]
@@ -282,6 +364,10 @@ pub(crate) struct Serializer {
     yaml_serializer: YamlSerializer,
     #[cfg(feature = "cbor")]
     cbor_serializer: CborSerializer,
+    #[cfg(feature = "binrw")]
+    binrw_le_serializer: BinrwLeSerializer,
+    #[cfg(feature = "binrw")]
+    binrw_be_serializer: BinrwBeSerializer,
 }
 
 impl Serializer {
@@ -296,6 +382,12 @@ impl Serializer {
             yaml_serializer: YamlSerializer::new(),
             #[cfg(feature = "cbor")]
             cbor_serializer: CborSerializer::new(),
+            #[cfg(feature = "binrw")]
+            binrw_le_serializer: BinrwLeSerializer::new(),
+            #[cfg(feature = "binrw")]
+            binrw_be_serializer: BinrwBeSerializer::new(),
+
+
         }
     }
 
@@ -313,6 +405,10 @@ impl Serializer {
             SerializationMethod::Yaml => self.yaml_serializer.deserialize_data(ser_data),
             #[cfg(feature = "cbor")]
             SerializationMethod::Cbor => self.cbor_serializer.deserialize_data(ser_data),
+            #[cfg(feature = "binrw")]
+            SerializationMethod::BinrwLe => self.binrw_le_serializer.deserialize_data(ser_data),
+            #[cfg(feature = "binrw")]
+            SerializationMethod::BinrwBe => self.binrw_be_serializer.deserialize_data(ser_data),
             #[cfg(feature = "json")]
             _ => self.json_serializer.deserialize_data(ser_data),
             #[cfg(feature = "bincode")]
@@ -321,6 +417,10 @@ impl Serializer {
             _ => self.yaml_serializer.deserialize_data(ser_data),
             #[cfg(feature = "cbor")]
             _ => self.cbor_serializer.deserialize_data(ser_data),
+            #[cfg(feature = "binrw")]
+            _ => self.binrw_le_serializer.deserialize_data(ser_data),
+            #[cfg(feature = "binrw")]
+            _ => self.binrw_be_serializer.deserialize_data(ser_data),
         }
     }
 
@@ -338,6 +438,10 @@ impl Serializer {
             SerializationMethod::Yaml => self.yaml_serializer.serialize_data(data),
             #[cfg(feature = "cbor")]
             SerializationMethod::Cbor => self.cbor_serializer.serialize_data(data),
+            #[cfg(feature = "binrw")]
+            SerializationMethod::BinrwLe => self.binrw_le_serializer.serialize_data(data),
+            #[cfg(feature = "binrw")]
+            SerializationMethod::BinrwBe => self.binrw_be_serializer.serialize_data(data),
             #[cfg(feature = "json")]
             _ => self.json_serializer.serialize_data(data),
             #[cfg(feature = "bincode")]
@@ -346,6 +450,11 @@ impl Serializer {
             _ => self.yaml_serializer.serialize_data(data),
             #[cfg(feature = "cbor")]
             _ => self.cbor_serializer.serialize_data(data),
+            #[cfg(feature = "binrw")]
+            _ => self.binrw_le_serializer.serialize_data(data),
+            #[cfg(feature = "binrw")]
+            _ => self.binrw_be_serializer.serialize_data(data),
+
         }
     }
 
@@ -364,6 +473,10 @@ impl Serializer {
             SerializationMethod::Yaml => self.yaml_serializer.serialize_db(map, list_map),
             #[cfg(feature = "cbor")]
             SerializationMethod::Cbor => self.cbor_serializer.serialize_db(map, list_map),
+            #[cfg(feature = "binrw")]
+            SerializationMethod::BinrwLe => self.binrw_le_serializer.serialize_db(map, list_map),
+            #[cfg(feature = "binrw")]
+            SerializationMethod::BinrwBe => self.binrw_be_serializer.serialize_db(map, list_map),
             #[cfg(feature = "json")]
             _ => self.json_serializer.serialize_db(map, list_map),
             #[cfg(feature = "bincode")]
@@ -372,6 +485,10 @@ impl Serializer {
             _ => self.yaml_serializer.serialize_db(map, list_map),
             #[cfg(feature = "cbor")]
             _ => self.cbor_serializer.serialize_db(map, list_map),
+            #[cfg(feature = "binrw")]
+            _ => self.binrw_le_serializer.serialize_db(map, list_map),
+            #[cfg(feature = "binrw")]
+            _ => self.binrw_be_serializer.serialize_db(map, list_map),
         }
     }
 
@@ -386,6 +503,10 @@ impl Serializer {
             SerializationMethod::Yaml => self.yaml_serializer.deserialize_db(ser_db),
             #[cfg(feature = "cbor")]
             SerializationMethod::Cbor => self.cbor_serializer.deserialize_db(ser_db),
+            #[cfg(feature = "binrw")]
+            SerializationMethod::BinrwLe => self.binrw_le_serializer.deserialize_db(ser_db),
+            #[cfg(feature = "binrw")]
+            SerializationMethod::BinrwBe => self.binrw_be_serializer.deserialize_db(ser_db),
             #[cfg(feature = "json")]
             _ => self.json_serializer.deserialize_db(ser_db),
             #[cfg(feature = "bincode")]
@@ -394,6 +515,10 @@ impl Serializer {
             _ => self.yaml_serializer.deserialize_db(ser_db),
             #[cfg(feature = "cbor")]
             _ => self.cbor_serializer.deserialize_db(ser_db),
+            #[cfg(feature = "binrw")]
+            _ => self.binrw_le_serializer.deserialize_db(ser_db),
+            #[cfg(feature = "binrw")]
+            _ => self.binrw_be_serializer.deserialize_db(ser_db),
         }
     }
 }

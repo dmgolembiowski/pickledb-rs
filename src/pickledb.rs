@@ -324,6 +324,60 @@ impl PickleDb {
         PickleDb::load(db_path, dump_policy, SerializationMethod::Cbor)
     }
 
+    /// Load a DB from a file stored in (Binrw little-endian) LE hex format
+    ///
+    /// This method tries to load a DB from a file serialized in Bincode format. Upon success an instance of `PickleDb` is returned,
+    /// otherwise an [Error](error/struct.Error.html) object is returned.
+    ///
+    /// # Arguments
+    ///
+    /// * `db_path` - a path where the DB is loaded from
+    /// * `dump_policy` - an enum value that determines the policy of dumping DB changes into the file.
+    ///   See [PickleDb::load()](#method.load) for more information
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use pickledb::{PickleDb, PickleDbDumpPolicy};
+    ///
+    /// let db = PickleDb::load_binrw_le("example.db", PickleDbDumpPolicy::AutoDump);
+    /// ```
+    ///
+    #[cfg(feature = "binrw")]
+    pub fn load_binrw_le<P: AsRef<Path>>(
+        db_path: P,
+        dump_policy: PickleDbDumpPolicy,
+    ) -> Result<PickleDb> {
+        PickleDb::load(db_path, dump_policy, SerializationMethod::BinrwLe)
+    }
+
+    /// Load a DB from a file stored in Binrw (big-endian) BE hex format
+    ///
+    /// This method tries to load a DB from a file serialized in Bincode format. Upon success an instance of `PickleDb` is returned,
+    /// otherwise an [Error](error/struct.Error.html) object is returned.
+    ///
+    /// # Arguments
+    ///
+    /// * `db_path` - a path where the DB is loaded from
+    /// * `dump_policy` - an enum value that determines the policy of dumping DB changes into the file.
+    ///   See [PickleDb::load()](#method.load) for more information
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use pickledb::{PickleDb, PickleDbDumpPolicy};
+    ///
+    /// let db = PickleDb::load_bin_le("example.db", PickleDbDumpPolicy::AutoDump);
+    /// ```
+    ///
+    #[cfg(feature = "binrw")]
+    pub fn load_bin_be<P: AsRef<Path>>(
+        db_path: P,
+        dump_policy: PickleDbDumpPolicy,
+    ) -> Result<PickleDb> {
+        PickleDb::load(db_path, dump_policy, SerializationMethod::BinrwBe)
+    }
+
     /// Load a DB from a file in read-only mode.
     ///
     /// This method is similar to the [PickleDb::load()](#method.load) method with the only difference
